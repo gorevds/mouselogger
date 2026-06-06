@@ -20,19 +20,27 @@ def __main():
     ml.start()
 
 
-if __name__ == '__main__':
-    if argv[1] == "start":
-        __main()
+USAGE = "Usage: MouseLogger.exe {start|install|uninstall}"
 
-    if argv[1] == 'install':
+
+def __dispatch(command):
+    if command == "start":
+        __main()
+    elif command == "install":
         add_to_startup()
         __main()
-
-    if argv[1] == 'uninstall':
+    elif command == "uninstall":
         remove_from_startup()
         all_to_one(LOG_DIR, LOG_NAME)
-        system("taskkill /f /im  " + APP_FILE_NAME + ".exe")
+        system("taskkill /f /im " + APP_FILE_NAME + ".exe")
+    else:
+        print(USAGE)
 
 
+if __name__ == '__main__':
+    if len(argv) < 2:
+        print(USAGE)
+    else:
+        __dispatch(argv[1])
 else:
     raise Exception("Модуль предназначен только для запуска")

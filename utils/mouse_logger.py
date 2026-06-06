@@ -7,6 +7,9 @@ from utils.mouse_log_event import MouseLogEvent
 VK_LBUTTON = 0x01
 VK_RBUTTON = 0x02
 
+# интервал опроса состояния мыши, секунды
+POLL_INTERVAL = 0.02
+
 
 class POINT(Structure):
     _fields_ = [("x", c_ulong), ("y", c_ulong)]
@@ -14,7 +17,8 @@ class POINT(Structure):
 
 class MouseLogger:
     def __init__(self):
-        self.mouse_log_list = []
+        self.last_event = None
+        self.file = None
 
     @staticmethod
     def get_mouse_position():
@@ -22,70 +26,60 @@ class MouseLogger:
         windll.user32.GetCursorPos(byref(pt))
         return [pt.x, pt.y]
 
-    def print_to_consol(self, action, x, y, t):
+    @staticmethod
+    def print_to_consol(action, x, y, t):
         print('{} | x: {} y: {} | {}'.format(action, x, y, t))
 
+    @staticmethod
+    def now_ms():
+        # полный Unix-таймстамп в миллисекундах
+        return round(time() * 1000)
+
     def add_event(self, event):
-        # удаление повторов
-        if event == self.mouse_log_list[-1]:
+        # пропускаем "пустые" такты, когда событие не сформировалось
+        if event is None:
             return
-        self.mouse_log_list.append(event)
+        # удаление повторов (равенство по action/x/y, без учёта времени)
+        if event == self.last_event:
+            return
+        self.last_event = event
         # self.print_to_consol(event.action, event.x, event.y, event.timestamp)
-        with open(LOG_DIR + MOUSELOGGER_FILE, 'a') as file:
-            file.write(event.to_str())
+        self.file.write(event.to_str())
+        self.file.flush()
+
+    def _button_event(self, vk, down_action, up_action, was_down, pos, t):
+        # GetKeyState возвращает >2 (старший бит), пока кнопка зажата
+        pressed = windll.user32.GetKeyState(vk) > 2
+        if pressed and not was_down:
+            return MouseLogEvent(down_action, pos[0], pos[1], t), True
+        if not pressed and was_down:
+            return MouseLogEvent(up_action, pos[0], pos[1], t), False
+        return None, was_down
 
     def start(self):
-        # обозначаем начало сессии нулевыми значениями
-        event = MouseLogEvent("0", 0, 0, 0)
-        self.mouse_log_list.append(event)
-        with open(LOG_DIR + MOUSELOGGER_FILE, 'a') as file:
-            file.write(event.to_str())
+        windll.user32.GetKeyState.restype = c_ushort
 
-        lb_down = False
-        rb_down = False
+        # держим файл открытым на всю сессию, чтобы не открывать его на каждое событие
+        with open(LOG_DIR + MOUSELOGGER_FILE, 'a') as self.file:
+            # обозначаем начало сессии нулевыми значениями
+            self.add_event(MouseLogEvent("0", 0, 0, self.now_ms()))
 
-        while True:
-            windll.user32.GetKeyState.restype = c_ushort
-            pos = self.get_mouse_position()
-            
-            t = str(round(time() * 1000))[-9:]
+            lb_down = False
+            rb_down = False
 
-            # перехват левой кнопки мыши
-            lb = windll.user32.GetKeyState(VK_LBUTTON)
-            event = None
-            if lb > 2:
-                if lb_down:
-                    event = MouseLogEvent("M", pos[0], pos[1], t)
-                else:
-                    event = MouseLogEvent("L_D", pos[0], pos[1], t)
-                    lb_down = True
+            while True:
+                pos = self.get_mouse_position()
+                t = self.now_ms()
 
-            if lb < 2:
-                if not lb_down:
-                    event = MouseLogEvent("M", pos[0], pos[1], t)
-                else:
-                    event = MouseLogEvent("L_U", pos[0], pos[1], t)
-                    lb_down = False
+                # движение фиксируем каждым тактом; повторы отсекает add_event
+                self.add_event(MouseLogEvent("M", pos[0], pos[1], t))
 
-            self.add_event(event)
+                lb_event, lb_down = self._button_event(
+                    VK_LBUTTON, "L_D", "L_U", lb_down, pos, t)
+                self.add_event(lb_event)
 
-            # перехват правой кнопки мыши
-            rb = windll.user32.GetKeyState(VK_RBUTTON)
-            if rb > 2:
-                if rb_down:
-                    event = MouseLogEvent("M", pos[0], pos[1], t)
-                else:
-                    event = MouseLogEvent("R_D", pos[0], pos[1], t)
-                    rb_down = True
+                rb_event, rb_down = self._button_event(
+                    VK_RBUTTON, "R_D", "R_U", rb_down, pos, t)
+                self.add_event(rb_event)
 
-            if rb < 2:
-                if not rb_down:
-                    event = MouseLogEvent("M", pos[0], pos[1], t)
-                else:
-                    event = MouseLogEvent("R_U", pos[0], pos[1], t)
-                    rb_down = False
-                    
-            self.add_event(event)
-            
-            sleep(0.02)
-
+                sleep(POLL_INTERVAL)

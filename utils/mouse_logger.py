@@ -1,4 +1,4 @@
-from ctypes import windll, Structure, c_ulong, byref, c_ushort
+from ctypes import windll, Structure, c_long, byref, c_ushort
 from time import time, sleep
 
 from common import LOG_DIR, MOUSELOGGER_FILE
@@ -7,12 +7,17 @@ from utils.mouse_log_event import MouseLogEvent
 VK_LBUTTON = 0x01
 VK_RBUTTON = 0x02
 
+# старший бит результата GetAsyncKeyState установлен, пока кнопка физически зажата
+KEY_PRESSED = 0x8000
+
 # интервал опроса состояния мыши, секунды
 POLL_INTERVAL = 0.02
 
 
 class POINT(Structure):
-    _fields_ = [("x", c_ulong), ("y", c_ulong)]
+    # POINT в WinAPI — это знаковые LONG: на мультимониторе координаты бывают
+    # отрицательными, поэтому c_long, а не c_ulong (иначе −10 прочитается как ~4e9)
+    _fields_ = [("x", c_long), ("y", c_long)]
 
 
 class MouseLogger:
@@ -48,8 +53,9 @@ class MouseLogger:
         self.file.flush()
 
     def _button_event(self, vk, down_action, up_action, was_down, pos, t):
-        # GetKeyState возвращает >2 (старший бит), пока кнопка зажата
-        pressed = windll.user32.GetKeyState(vk) > 2
+        # GetAsyncKeyState читает физическое состояние кнопки независимо от
+        # очереди сообщений потока; GetKeyState без насоса сообщений его не видит
+        pressed = bool(windll.user32.GetAsyncKeyState(vk) & KEY_PRESSED)
         if pressed and not was_down:
             return MouseLogEvent(down_action, pos[0], pos[1], t), True
         if not pressed and was_down:
@@ -57,7 +63,7 @@ class MouseLogger:
         return None, was_down
 
     def start(self):
-        windll.user32.GetKeyState.restype = c_ushort
+        windll.user32.GetAsyncKeyState.restype = c_ushort
 
         # держим файл открытым на всю сессию, чтобы не открывать его на каждое событие
         with open(LOG_DIR + MOUSELOGGER_FILE, 'a') as self.file:

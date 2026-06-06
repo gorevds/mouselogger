@@ -1,0 +1,21 @@
+.idea/
+
+# Data, intermediate data
+*.tsv
+*.txt
+*.csv
+*.spec
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+
+tmp.py
+build/
+
+dist/
+
+venv/
+
+--hidden-import

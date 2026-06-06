@@ -46,7 +46,7 @@ class PollingMouseSource(InputSource):
         user32.GetAsyncKeyState.restype = c_ushort
 
         point = POINT()
-        is_down = {vk: False for vk in _BUTTONS}
+        is_down = dict.fromkeys(_BUTTONS, False)
 
         while not should_stop():
             timestamp = _now_ms()

@@ -8,8 +8,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Any
 
 from .event import SCHEMA_VERSION
 
@@ -45,7 +46,7 @@ class SessionMeta:
         sample_hz: int,
         consent: bool,
         app_version: str,
-    ) -> "SessionMeta":
+    ) -> SessionMeta:
         """Создать метаданные новой сессии со свежим ``session_id``."""
         width, height = screen
         return cls(
@@ -78,20 +79,20 @@ class SessionMeta:
         }
 
     @classmethod
-    def from_dict(cls, record: Mapping[str, object]) -> "SessionMeta":
+    def from_dict(cls, record: Mapping[str, Any]) -> SessionMeta:
         """Восстановить метаданные из мета-строки JSONL."""
         screen = record["screen"]
-        width, height = int(screen[0]), int(screen[1])  # type: ignore[index]
+        width, height = int(screen[0]), int(screen[1])
         return cls(
             participant_id=str(record["participant"]),
             session_id=str(record["session"]),
-            started_ms=int(record["started_ms"]),        # type: ignore[arg-type]
+            started_ms=int(record["started_ms"]),
             os_name=str(record["os"]),
             screen_width=width,
             screen_height=height,
-            dpi=int(record["dpi"]),                       # type: ignore[arg-type]
-            sample_hz=int(record["sample_hz"]),           # type: ignore[arg-type]
+            dpi=int(record["dpi"]),
+            sample_hz=int(record["sample_hz"]),
             consent=bool(record["consent"]),
             app_version=str(record["app_version"]),
-            schema_version=int(record["schema"]),         # type: ignore[arg-type]
+            schema_version=int(record["schema"]),
         )

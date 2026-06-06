@@ -15,10 +15,10 @@ from __future__ import annotations
 import os
 import sys
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Mapping
 
 APP_NAME = "MouseLogger"
 ENV_PREFIX = "MOUSELOGGER_"
@@ -122,7 +122,7 @@ class Config:
         return 1.0 / self.sample_hz
 
     @classmethod
-    def load(cls, environ: Mapping[str, str] | None = None) -> "Config":
+    def load(cls, environ: Mapping[str, str] | None = None) -> Config:
         """Собрать конфигурацию из окружения и значений по умолчанию.
 
         :param environ: подменяемое отображение окружения (для тестов);

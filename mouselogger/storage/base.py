@@ -27,7 +27,7 @@ class Sink(ABC):
     def close(self) -> None:
         """Завершить сессию записи, сбросив буферы."""
 
-    def __enter__(self) -> "Sink":
+    def __enter__(self) -> Sink:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:

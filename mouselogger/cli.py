@@ -64,21 +64,21 @@ def _ensure_consent(config: Config, record: bool) -> Config | None:
 
 
 def _cmd_start(args: argparse.Namespace, config: Config) -> int:
-    config = _ensure_consent(config, args.consent)
-    if config is None:
+    consented = _ensure_consent(config, args.consent)
+    if consented is None:
         return 2
     print(f"MouseLogger: сбор начат (бэкенд: {args.backend}). Ctrl+C — остановить.")
-    app.run_capture(config, args.backend)
+    app.run_capture(consented, args.backend)
     return 0
 
 
 def _cmd_install(args: argparse.Namespace, config: Config) -> int:
-    config = _ensure_consent(config, args.consent)
-    if config is None:
+    consented = _ensure_consent(config, args.consent)
+    if consented is None:
         return 2
     autostart.enable()
     print("MouseLogger: добавлен в автозапуск; сбор начат.")
-    app.run_capture(config, args.backend)
+    app.run_capture(consented, args.backend)
     return 0
 
 

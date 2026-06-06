@@ -14,9 +14,9 @@
 from __future__ import annotations
 
 import ctypes
-from ctypes import POINTER, byref, c_int, c_ssize_t, cast, windll
-from ctypes import wintypes
+from ctypes import POINTER, byref, c_int, c_ssize_t, cast, windll, wintypes
 from time import sleep, time
+from typing import Any
 
 from ..event import Action, Event
 from .base import InputSource, OnEvent, ShouldStop
@@ -70,7 +70,7 @@ class LowLevelMouseSource(InputSource):
     def __init__(self, capture_scroll: bool = True) -> None:
         self._capture_scroll = capture_scroll
         # ссылку на callback держим на экземпляре, иначе его соберёт GC -> падение
-        self._proc = None
+        self._proc: Any = None
 
     def run(self, on_event: OnEvent, should_stop: ShouldStop) -> None:
         user32 = windll.user32

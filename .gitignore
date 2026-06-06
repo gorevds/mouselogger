@@ -17,5 +17,12 @@ build/
 dist/
 
 venv/
+.venv/
+
+# Tooling caches and build metadata
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
 
 --hidden-import

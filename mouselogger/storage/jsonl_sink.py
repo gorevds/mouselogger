@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import TextIO
 
 from ..event import Event
 from ..session import SessionMeta
@@ -38,7 +39,7 @@ class JsonlSink(Sink):
         self._participant_id = participant_id
         self._flush_every = max(1, flush_every)
         self._meta_line: str | None = None
-        self._file = None
+        self._file: TextIO | None = None
         self._current_date: str | None = None
         self._since_flush = 0
 
@@ -53,6 +54,7 @@ class JsonlSink(Sink):
         date = _date_str(event.t)
         if date != self._current_date:
             self._rotate_to(date)
+        assert self._file is not None  # _rotate_to гарантирует открытый файл
         self._file.write(json.dumps(event.to_dict(), ensure_ascii=False))
         self._file.write("\n")
         self._since_flush += 1

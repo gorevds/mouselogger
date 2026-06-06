@@ -7,9 +7,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Mapping
+from typing import Any
 
 # Версия схемы лога. Увеличивать при любом несовместимом изменении формата
 # событий или метаданных сессии, чтобы старые логи можно было распознать.
@@ -71,13 +72,13 @@ class Event:
         return record
 
     @classmethod
-    def from_dict(cls, record: Mapping[str, object]) -> "Event":
+    def from_dict(cls, record: Mapping[str, Any]) -> Event:
         """Восстановить событие из словаря, полученного из JSONL-строки."""
         value = record.get("v")
         return cls(
             action=Action(record["a"]),
-            x=int(record["x"]),          # type: ignore[arg-type]
-            y=int(record["y"]),          # type: ignore[arg-type]
-            t=int(record["t"]),          # type: ignore[arg-type]
-            value=None if value is None else int(value),  # type: ignore[arg-type]
+            x=int(record["x"]),
+            y=int(record["y"]),
+            t=int(record["t"]),
+            value=None if value is None else int(value),
         )

@@ -18,7 +18,7 @@ BACKENDS = ("hook", "poll")
 DEFAULT_BACKEND = "hook"
 
 
-def create_input_source(config: "Config", backend: str = DEFAULT_BACKEND) -> InputSource:
+def create_input_source(config: Config, backend: str = DEFAULT_BACKEND) -> InputSource:
     """Создать источник ввода выбранного бэкенда.
 
     :param backend: ``"hook"`` — низкоуровневый системный хук (точнее, со

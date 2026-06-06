@@ -16,6 +16,7 @@ import os
 import sys
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Mapping
 
@@ -29,8 +30,26 @@ MIN_SAMPLE_HZ = 1
 MAX_SAMPLE_HZ = 1000
 
 PARTICIPANT_FILE_NAME = "participant_id.txt"
+CONSENT_FILE_NAME = "consent.txt"
 
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+
+
+def _consent_file_exists(data_dir: Path) -> bool:
+    return (data_dir / CONSENT_FILE_NAME).exists()
+
+
+def record_consent(data_dir: Path) -> Path:
+    """Зафиксировать факт согласия участника (файл-маркер с отметкой времени).
+
+    Согласие, данное один раз, сохраняется, чтобы автозапуск в следующих
+    сессиях видел его без повторного флага.
+    """
+    data_dir.mkdir(parents=True, exist_ok=True)
+    consent_file = data_dir / CONSENT_FILE_NAME
+    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    consent_file.write_text(f"consented_at={stamp}\n", encoding="utf-8")
+    return consent_file
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -120,7 +139,10 @@ class Config:
 
         sample_hz = _clamp_sample_hz(env.get(ENV_PREFIX + "SAMPLE_HZ"))
         capture_scroll = _as_bool(env.get(ENV_PREFIX + "SCROLL"), default=True)
-        consent = _as_bool(env.get(ENV_PREFIX + "CONSENT"), default=False)
+        # согласие действует, если задано в окружении ИЛИ сохранён файл-маркер
+        consent = _as_bool(env.get(ENV_PREFIX + "CONSENT"), default=False) or (
+            _consent_file_exists(data_dir)
+        )
 
         return cls(
             data_dir=data_dir,
